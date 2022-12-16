@@ -1,9 +1,16 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { Client, Collection, Events, GatewayIntentBits } = require("discord.js");
+const { Client, Collection, Events, GatewayIntentBits, Embed } = require("discord.js");
 const { token } = require("./config.json");
-
+const { EmbedBuilder } = require('discord.js');
+var todaysUpdaters = new Array();
+todaysUpdaters.push('empty');
 const keepAlive = require('./serverWake.js');
+const scheduleEmbed = require('../node_modules/node-schedule');
+const scheduleArchieve = require('../node_modules/node-schedule');
+const { channel } = require("node:diagnostics_channel");
+const { clearLine } = require("node:readline");
+const { toASCII } = require("node:punycode");
 
 const client = new Client({
   intents: [
@@ -31,7 +38,6 @@ for (const file of commandFiles) {
     );
   }
 }
-
 client.once(Events.ClientReady, () => {
   console.log("Freud is live");
 });
@@ -65,31 +71,56 @@ client.on("messageCreate", (message) => {
 });
 
 
+
 //Apreciation Thread on commit 
 client.on('messageCreate', async (msg) => {
   let cmtLnk = /https:\/\/github\.com\/.*\/.*\/commit\/[0-9a-f]{40}/;
-
+  let date = new Date();
+  let channel = msg.channel
   if (msg.content.match(cmtLnk) !== null) {
 
+    todaysUpdaters.push(msg.author.username);
     msg.react('🔥')
-    const thread =  await msg.channel.threads.create({
-      name: "AppreciationThread",  
-    }); 
+    const thread =  await msg.startThread({
+      name: `${msg.author.username}'s AppreciationThread`,
+      // autoArchiveDuration: 60, 
+    });
+   
     const threadId = thread.id;
-  
-
-    const webhooks = await msg.channel.fetchWebhooks();
+    const webhooks = await msg.channel.fetchWebhooks('1050650744635785266', 'HvHCwilgtWUDi0Fy5jiXmWq1nE0FVvGRxZ6tWdYClxweFPLQRwAG0RkHif3W3hisTRsq');
     const webhook = webhooks.first();
+    
 
     await webhook.send({
       content: 'Damnn Bro, You Work too hard !!',
       threadId: threadId,
     });
+
+    scheduleArchieve.scheduleJob('* 58 23 * * *', async () =>{
+      thread.setArchived(true);
+    });
+
   }
+ 
+
+ 
+});
+
+
+scheduleEmbed.scheduleJob('* 59 23 * * *', async () => {
+  if(todaysUpdaters[0] === 'empty' && todaysUpdaters.length > 1){
+    todaysUpdaters.shift();
+  }
+
+  client.channels.cache.get('1049685691677806692').send(`Today's Daily commiters \n${todaysUpdaters}`);
+  todaysUpdaters = [];
+  todaysUpdaters.push('empty');
+  
 });
 
 
 
-keepAlive()
+
+// keepAlive()
 
 client.login(token);
