@@ -96,7 +96,7 @@ client.on('messageCreate', async (msg) => {
       threadId: threadId,
     });
 
-    scheduleArchieve.scheduleJob('* 58 23 * * *', async () =>{
+    scheduleArchieve.scheduleJob('57 23 * * *', async () =>{
       thread.setArchived(true);
     });
 
@@ -107,7 +107,7 @@ client.on('messageCreate', async (msg) => {
 });
 
 
-scheduleEmbed.scheduleJob('* 59 23 * * *', async () => {
+scheduleEmbed.scheduleJob('59  23 * * *', async () => {
   if(todaysUpdaters[0] === 'empty' && todaysUpdaters.length > 1){
     todaysUpdaters.shift();
   }
