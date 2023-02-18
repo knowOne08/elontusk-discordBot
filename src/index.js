@@ -1,126 +1,132 @@
-const fs = require("node:fs");
-const path = require("node:path");
-const { Client, Collection, Events, GatewayIntentBits, Embed } = require("discord.js");
-const { token } = require("./config.json");
-const { EmbedBuilder } = require('discord.js');
-var todaysUpdaters = new Array();
-todaysUpdaters.push('empty');
-const keepAlive = require('./serverWake.js');
-const scheduleEmbed = require('../node_modules/node-schedule');
-const scheduleArchieve = require('../node_modules/node-schedule');
-const { channel } = require("node:diagnostics_channel");
-const { clearLine } = require("node:readline");
-const { toASCII } = require("node:punycode");
-
+//for a connection with discord
+const { Client, GatewayIntentBits, messageLink, EmbedBuilder, MessageAttachment  } = require("discord.js");
+const dotenv = require("dotenv");
+const schedule = require('node-schedule');
+let dailyUpdaters = [];
+let shoutoutRule = new schedule.RecurrenceRule()
+shoutoutRule.tz = 'Asia/Kolkata'
+shoutoutRule.hour = 23;
+shoutoutRule.minute = 58;
+shoutoutRule.second = 0;
+const mongoose = require('mongoose');
+const Updaters = require('../models/updaters-schema')
+// const getUserFromMention = require('../functions/getUserId')
+// const axios = require("axios"); 
+dotenv.config();
+const keepAlive = require('./serverWake')
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,
-  ]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]});
+
+
+
+
+
+// const client = new Discord.Client({ intents: ["GUILDS", "GUILD_MESSAGES"] });
+
+//bot redy test
+client.on("ready", () => {
+  let uri = 'mongodb+srv://elonTuskBot:'+process.env.MONGO_PASS+'@cluster0.ak5numc.mongodb.net/?retryWrites=true&w=majority'
+  mongoose.connect(uri, {
+    keepAlive:true
+  })
+
+  console.log("Bot is ready!");
+
+  schedule.scheduleJob(shoutoutRule, async() => {
+
+    // console.log('ran cron job')
+    // Send a dail-updaters shoutout
+    // dailyUpdaters = dailyUpdaters.map(dailyUpdater => dailyUpdater = getUserFromMention(dailyUpdater))
+    // console.log(dailyUpdaters)
+ 
+    dailyUpdaters =  [... new Set(dailyUpdaters)]
+    if(dailyUpdaters){
+      client.channels.cache.get('1035584676238209055').send({ 
+      content: `Today's commiters ${dailyUpdaters}`,
+      // embeds: [
+      //         new EmbedBuilder()
+      //            .setDescription("test")
+      //            .setTitle("test title")
+      //            .setAuthor({
+      //               name: client.users.cache.get('1069641772164206703'),
+      //               iconUrl: "https://i.pinimg.com/564x/a3/d6/82/a3d6828d877d4d6fe17c5b2c22ca6b03.jpg"
+      //             })
+      //            .setColor(0x4778e9)
+      //         ]
+      });   
+
+    } else if(dailyUpdaters.length == 0) {
+      client.channels.cache.get('1035584676238209055').send({
+        content: `No commits today :(`
+      });
+    }
+
+    //emptying the database
+    mongoose.connection.db.dropCollection('updaters');
+    dailyUpdaters = [];
+  })
 });
 
-client.commands = new Collection();
-const commandsPath = path.join(__dirname, "commands");
-const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith(".js"));
-
-for (const file of commandFiles) {
-  const filePath = path.join(commandsPath, file);
-  const command = require(filePath);
-  // Set a new item in the Collection with the key as the command name and the value as the exported module
-
-  if ("data" in command && "execute" in command) {
-    client.commands.set(command.data.name, command);
-  } else {
-    console.log(
-      `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
-    );
-  }
-}
-client.once(Events.ClientReady, () => {
-  console.log("Freud is live");
-});
-
-client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-
-  const command = client.commands.get(interaction.commandName);
-
-  if (!command) return;
-
-  try {
-    await command.execute(interaction);
-  } catch (error) {
-    console.error(error);
-    await interaction.reply({
-      content: "There was an error while executing this command!",
-      ephemeral: true,
-    });
-  }
-});
-
-//hello message
-client.on("messageCreate", (message) => {
-  if (message.author.bot) return false;
-
-  if (message.content === "hello Freud") {
-    message.channel.send(`hi ${message.author.username}`);
-  }
-
-});
-
-
-
-//Apreciation Thread on commit 
-client.on('messageCreate', async (msg) => {
-  let cmtLnk = /https:\/\/github\.com\/.*\/.*\/commit\/[0-9a-f]{40}/;
-  let date = new Date();
-  let channel = msg.channel
-  if (msg.content.match(cmtLnk) !== null) {
-
-    todaysUpdaters.push(msg.author.username);
-    msg.react('🔥')
-    const thread =  await msg.startThread({
-      name: `${msg.author.username}'s AppreciationThread`,
-      // autoArchiveDuration: 60, 
-    });
-   
-    const threadId = thread.id;
-    const webhooks = await msg.channel.fetchWebhooks('1050650744635785266', 'HvHCwilgtWUDi0Fy5jiXmWq1nE0FVvGRxZ6tWdYClxweFPLQRwAG0RkHif3W3hisTRsq');
-    const webhook = webhooks.first();
+client.on('messageCreate', async (msg)=>{
+  try{
     
+    if(msg.author.bot) return //bot dont get in loop
 
-    await webhook.send({
-      content: 'Damnn Bro, You Work too hard !!',
-      threadId: threadId,
-    });
-
-    scheduleArchieve.scheduleJob('57 23 * * *', async () =>{
-      thread.setArchived(true);
-    });
-
-  }
- 
-
- 
-});
-
-
-scheduleEmbed.scheduleJob('59  23 * * *', async () => {
-  if(todaysUpdaters[0] === 'empty' && todaysUpdaters.length > 1){
-    todaysUpdaters.shift();
-  }
-
-  client.channels.cache.get('1049685691677806692').send(`Today's Daily commiters \n${todaysUpdaters}`);
-  todaysUpdaters = [];
-  todaysUpdaters.push('empty');
+    let cmtLnk = /https:\/\/github\.com\/.*\/.*\/commit\/[0-9a-f]{40}/;
   
-});
+    if(msg.content.match(cmtLnk) !== null){
+      
+      msg.react('🔥');
+      const thread = await msg.startThread({
+        name: `${msg.author.username}'s AppreciationThread`,
+        // autoArchiveDuration: 60, 
+      });
+
+      const threadId = thread.id;
+      const webhooks = await msg.channel.fetchWebhooks('1050650744635785266', 'HvHCwilgtWUDi0Fy5jiXmWq1nE0FVvGRxZ6tWdYClxweFPLQRwAG0RkHif3W3hisTRsq');
+      const webhook = webhooks.first();
+
+      //theAppreciator webhook url
+      //https://discord.com/api/webhooks/1074013533576110170/C9tyxYO6j8PC6q-ImS6fVZNMO_fUedrS1UhPYuK-UtnrziIbY2BGg9BUcT8M7twggXES
+      await webhook.send({
+        content: 'Damnn, You Work too hard !!',
+        threadId: threadId,
+        files: ['https://i.pinimg.com/564x/7f/52/fb/7f52fb4660263684b4ffd130620736d2.jpg'],
+      });
+
+        await new Updaters({
+          uid: msg.author.id,
+          name: msg.author.username,
+        
 
 
+        }).save()
 
+      //scheduled archive
+      schedule.scheduleJob(shoutoutRule, async () => {
+        thread.setArchived(true);
+      });
+      
+    }
+
+      (await Updaters.find()).forEach((dailyUpdater)=>{
+        
+        // console.log(dailyUpdater.name);
+        dailyUpdaters.push(client.users.cache.get(dailyUpdater.uid.toString));
+      })
+      
+
+    
+      // console.log(dailyUpdaters);
+
+  } catch(err) {
+    console.log(err) 
+  }
+})
 
 // keepAlive()
-
-client.login(token);
+client.login(process.env.TOKEN);
