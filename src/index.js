@@ -44,22 +44,22 @@ client.on("ready", () => {
     // console.log(dailyUpdaters)
  
     dailyUpdaters =  [... new Set(dailyUpdaters)]
-    if(dailyUpdaters){
+    // console.log(dailyUpdaters)
+    // console.log(dailyUpdaters)
+    if(dailyUpdaters.length > 0){
       client.channels.cache.get('1035584676238209055').send({ 
-      content: `Today's commiters ${dailyUpdaters}`,
-      // embeds: [
-      //         new EmbedBuilder()
-      //            .setDescription("test")
-      //            .setTitle("test title")
-      //            .setAuthor({
-      //               name: client.users.cache.get('1069641772164206703'),
-      //               iconUrl: "https://i.pinimg.com/564x/a3/d6/82/a3d6828d877d4d6fe17c5b2c22ca6b03.jpg"
-      //             })
-      //            .setColor(0x4778e9)
-      //         ]
+      // content: `Today's commiters ${dailyUpdaters}`,
+      embeds: [
+        new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle("Today's Updaters")
+            .setDescription(`${dailyUpdaters}`)
+            .setAuthor({ name: 'Baburao', iconURL: 'https://pbs.twimg.com/profile_images/1251244594966040576/v-b1F6AM_400x400.jpg' })
+            .setThumbnail('https://www.mirchiplay.com/wp-content/uploads/2020/06/akshay-kumar-scheme-pose.jpg')
+     ]  
       });   
 
-    } else if(dailyUpdaters.length == 0) {
+    } else {
       client.channels.cache.get('1035584676238209055').send({
         content: `No commits today :(`
       });
@@ -114,9 +114,9 @@ client.on('messageCreate', async (msg)=>{
     }
 
       (await Updaters.find()).forEach((dailyUpdater)=>{
-        
-        // console.log(dailyUpdater.name);
-        dailyUpdaters.push(client.users.cache.get(dailyUpdater.uid.toString));
+
+        dailyUpdaters.push('<@!' + dailyUpdater.uid + '>');
+        // console.log(dailyUpdater.uid)
       })
       
 
@@ -128,5 +128,5 @@ client.on('messageCreate', async (msg)=>{
   }
 })
 
-// keepAlive()
+keepAlive()
 client.login(process.env.TOKEN);
