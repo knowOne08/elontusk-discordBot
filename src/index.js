@@ -36,19 +36,15 @@ client.on("ready", () => {
 
   console.log("Bot is ready!");
 
-  schedule.scheduleJob(shoutoutRule, async() => {
+  schedule.scheduleJob('*/7 * * * * *', async() => {
 
-    // console.log('ran cron job')
-    // Send a dail-updaters shoutout
-    // dailyUpdaters = dailyUpdaters.map(dailyUpdater => dailyUpdater = getUserFromMention(dailyUpdater))
-    // console.log(dailyUpdaters)
+
  
     dailyUpdaters =  [... new Set(dailyUpdaters)]
-    // console.log(dailyUpdaters)
-    // console.log(dailyUpdaters)
+
     if(dailyUpdaters.length > 0){
       client.channels.cache.get('1035584676238209055').send({ 
-      // content: `Today's commiters ${dailyUpdaters}`,
+
       embeds: [
         new EmbedBuilder()
             .setColor(0x0099FF)
@@ -66,7 +62,7 @@ client.on("ready", () => {
     }
 
     //emptying the database
-    mongoose.connection.db.dropCollection('updaters');
+    // mongoose.connection.db.dropCollection('updaters');
     dailyUpdaters = [];
   })
 });
@@ -96,28 +92,57 @@ client.on('messageCreate', async (msg)=>{
         files: ['https://i.pinimg.com/564x/7f/52/fb/7f52fb4660263684b4ffd130620736d2.jpg'],
       });
 
-        await new Updaters({
-          uid: msg.author.id,
-          name: msg.author.username,
+        // await new Updaters({
+        //   uid: msg.author.id,
+        //   name: msg.author.username,
 
-        }).save()
-
+        // }).save()
+      await Updaters.findOneAndUpdate(
+        {uid: msg.author.id},
+        {
+          streakCount: {
+                  $cond: {
+                        if: {done: {$eq: true}},
+                        then: {$inc: {count: 1}},
+                        else: {$set: {count: 0}}
+                        }
+                      },
+          $inc: {noOfCommits: 1}
+        }
+      ),  (err,docs) => {
+        if(docs.length){
+          console.log("Already Exists")
+          console.log(docs)
+        } else {
+          console.log(err)
+          console.log("here")
+           new Updaters({
+            uid: msg.author.id,
+            name: msg.author.username,
+            streakCount: {
+              count: 1,
+              done: true,
+            },
+            noOfCommits: 1
+          }).save()
+        }
+      }
       //scheduled archive
-      schedule.scheduleJob(shoutoutRule, async () => {
-        thread.setArchived(true);
-      });
+
       
     }
 
       (await Updaters.find()).forEach((dailyUpdater)=>{
-
         dailyUpdaters.push('<@!' + dailyUpdater.uid + '>');
-        // console.log(dailyUpdater.uid)
       })
       
 
     
-      // console.log(dailyUpdaters);
+
+      //Deleting the appreciation threads
+      schedule.scheduleJob(shoutoutRule, async () => {
+        thread.setArchived(true);
+      });
 
   } catch(err) {
     console.log(err) 
