@@ -90,8 +90,6 @@ client.on('messageCreate', async (msg)=>{
       const webhooks = await msg.channel.fetchWebhooks('1050650744635785266', 'HvHCwilgtWUDi0Fy5jiXmWq1nE0FVvGRxZ6tWdYClxweFPLQRwAG0RkHif3W3hisTRsq');
       const webhook = webhooks.first();
 
-      //theAppreciator webhook url
-      //https://discord.com/api/webhooks/1074013533576110170/C9tyxYO6j8PC6q-ImS6fVZNMO_fUedrS1UhPYuK-UtnrziIbY2BGg9BUcT8M7twggXES
       await webhook.send({
         content: 'Damnn, You Work too hard !!',
         threadId: threadId,
@@ -101,8 +99,6 @@ client.on('messageCreate', async (msg)=>{
         await new Updaters({
           uid: msg.author.id,
           name: msg.author.username,
-        
-
 
         }).save()
 
