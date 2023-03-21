@@ -1,7 +1,6 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const dotenv = require("dotenv");
 const schedule = require("node-schedule");
-
 let dailyUpdaters = [];
 let shoutoutRule = new schedule.RecurrenceRule();
 shoutoutRule.tz = "Asia/Kolkata";
@@ -20,8 +19,9 @@ const client = new Client({
   ],
 });
 
-//bot redy test
+//bot ready test
 client.on("ready", () => {
+  //setting up connection to mongoDB
   let uri =
     "mongodb+srv://elonTuskBot:" +
     process.env.MONGO_PASS +
@@ -31,10 +31,10 @@ client.on("ready", () => {
   });
 
   console.log("Bot is ready!");
-
+  
+  //scheduling a shoutout event with the help of cron job
   schedule.scheduleJob(shoutoutRule, async () => {
     // Send a daily-updater shoutout
-    dailyUpdaters = [...new Set(dailyUpdaters)];
 
     if (dailyUpdaters.length > 0) {
       client.channels.cache.get("1035584676238209055").send({
@@ -56,16 +56,17 @@ client.on("ready", () => {
       });
     }
 
-    dailyUpdaters = [];
+    dailyUpdaters = []; //clearing the array after shoutout
   });
 });
 
 client.on("messageCreate", async (msg) => {
   try {
-    if (msg.author.bot) return; //bot dont get in loop
+    if (msg.author.bot) return; //so bot don't get in loop
 
     let cmtLnk = /https:\/\/github\.com\/.*\/.*\/commit\/[0-9a-f]{40}/;
 
+    //if message contains a commit link
     if (msg.content.match(cmtLnk) !== null) {
       msg.react("🔥");
       const thread = await msg.startThread({
@@ -88,6 +89,7 @@ client.on("messageCreate", async (msg) => {
         ],
       });
 
+      //updating the database
       await Updaters.findOneAndUpdate({ uid: msg.author.id }, [
         {
           $set: {
@@ -110,7 +112,7 @@ client.on("messageCreate", async (msg) => {
         if (doc) {
           console.log(doc); //Document just before updation
           console.log("Done");
-        } else {
+        } else { //if no document (user) is found
           new Updaters({
             uid: msg.author.id,
             name: msg.author.username,
