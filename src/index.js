@@ -34,8 +34,19 @@ client.on("ready", () => {
   
   //scheduling a shoutout event with the help of cron job
   schedule.scheduleJob(shoutoutRule, async () => {
-    // Send a daily-updater shoutout
 
+    //pushing daily users to a temporary array
+    (await Updaters.find()).forEach((dailyUpdater) => {
+      dailyUpdaters.push(
+        "<@!" +
+          dailyUpdater.uid +
+          ">\n" +
+          "Streak Count: " +
+          dailyUpdater.dates.length +
+          "\n"
+      );
+    });
+    // Send a daily-updater shoutout
     if (dailyUpdaters.length > 0) {
       client.channels.cache.get("1035584676238209055").send({
         embeds: [
@@ -129,17 +140,6 @@ client.on("messageCreate", async (msg) => {
         thread.setArchived(true);
       });
     }
-
-    (await Updaters.find()).forEach((dailyUpdater) => {
-      dailyUpdaters.push(
-        "<@!" +
-          dailyUpdater.uid +
-          ">\n" +
-          "Streak Count: " +
-          dailyUpdater.dates.length +
-          "\n"
-      );
-    });
   } catch (err) {
     console.log(err);
   }
